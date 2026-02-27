@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import type { UserProfile, Sex } from "@/lib/types";
@@ -12,6 +12,18 @@ export default function ProfilPage() {
   const [birthYear, setBirthYear] = useState(profile?.birthYear ?? 1960);
   const [sleepTime, setSleepTime] = useState(profile?.sleepTime ?? "22:00");
   const [wakeTime, setWakeTime] = useState(profile?.wakeTime ?? "07:00");
+
+  // Synkroniser lokale state-værdier når profil opdateres via sync
+  const prevProfileRef = useRef(profile);
+  useEffect(() => {
+    if (profile && profile !== prevProfileRef.current) {
+      setSex(profile.sex);
+      setBirthYear(profile.birthYear);
+      setSleepTime(profile.sleepTime);
+      setWakeTime(profile.wakeTime);
+      prevProfileRef.current = profile;
+    }
+  }, [profile]);
   const isNew = !profile;
   const age = profile ? new Date().getFullYear() - profile.birthYear : null;
 
