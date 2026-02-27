@@ -1,13 +1,9 @@
 "use client";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
+import ProfilPage from "./profil/page";
+import RegistrerPage from "./registrer/page";
 
 export default function Home() {
-  const router = useRouter();
   const profile = useStore((s) => s.profile);
-  useEffect(() => {
-    router.replace(profile ? "/vandladningsdagbog/registrer" : "/vandladningsdagbog/profil");
-  }, [profile, router]);
-  return null;
+  return profile ? <RegistrerPage /> : <ProfilPage />;
 }

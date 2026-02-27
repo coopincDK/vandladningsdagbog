@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { estimateVolume } from "@/lib/qavg";
 import type { BeverageType, IncontinenceSeverity } from "@/lib/types";
@@ -63,13 +64,13 @@ export default function RegistrerPage() {
     resetAll();
   }
 
-  if (!profile) return <div className="max-w-lg mx-auto px-4 py-8 text-center"><p style={{ color:"var(--muted)" }}>Udfyld din profil først</p><a href="/vandladningsdagbog/profil" className="underline" style={{ color:"var(--accent)" }}>Gå til profil</a></div>;
+  if (!profile) return <div className="max-w-lg mx-auto px-4 py-8 text-center"><p style={{ color:"var(--muted)" }}>Udfyld din profil først</p></div>;
 
   if (mode === "home") return (
     <div className="max-w-lg mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Registrer</h1>
-        <a href="/vandladningsdagbog/profil" className="text-sm px-3 py-2 rounded-xl" style={{ background:"var(--surface)", border:"1px solid var(--border)", color:"var(--muted)" }}>👤 Profil</a>
+        <Link href="/profil" className="text-sm px-3 py-2 rounded-xl" style={{ background:"var(--surface)", border:"1px solid var(--border)", color:"var(--muted)" }}>👤 Profil</Link>
       </div>
       <div className="space-y-4">
         <button onClick={startTimer} className="w-full py-8 rounded-2xl text-2xl font-bold flex flex-col items-center gap-2 active:scale-95 transition-transform" style={{ background:"var(--accent)", color:"#fff" }}>

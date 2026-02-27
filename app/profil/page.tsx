@@ -1,11 +1,11 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { useStore } from "@/lib/store";
 import type { UserProfile, Sex } from "@/lib/types";
 
 export default function ProfilPage() {
-  const router = useRouter();
+
   const profile = useStore((s) => s.profile);
   const setProfile = useStore((s) => s.setProfile);
   const [sex, setSex] = useState<Sex>(profile?.sex ?? "male");
@@ -17,7 +17,7 @@ export default function ProfilPage() {
 
   function save() {
     setProfile({ sex, birthYear, sleepTime, wakeTime });
-    setTimeout(() => router.push("/vandladningsdagbog/registrer"), 100);
+    // State opdateres → forsiden viser registrer automatisk
   }
 
   return (
