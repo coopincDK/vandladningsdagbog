@@ -106,7 +106,7 @@ export default function IPSSPage() {
   if (step === "questions" && q) {
     const ans = answers[q.id];
     const pct = ((qi + 1) / qs.length) * 100;
-    const isNej = ans?.a === 0;
+
     return (
       <div className="max-w-lg mx-auto px-4 py-8">
         {/* Progress */}
@@ -131,8 +131,8 @@ export default function IPSSPage() {
           ))}
         </div>
 
-        {/* Kommentarfelt ved Nej */}
-        {ans && isNej && (
+        {/* Kommentarfelt — altid synligt når svaret er givet */}
+        {ans && (
           <div className="mb-4">
             <label className="block text-xs font-semibold uppercase mb-2" style={{ color: "var(--muted)" }}>
               Kommentar (valgfri)

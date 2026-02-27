@@ -12,6 +12,7 @@ export default function ProfilPage() {
   const [birthYear, setBirthYear] = useState(profile?.birthYear ?? 1960);
   const [sleepTime, setSleepTime] = useState(profile?.sleepTime ?? "22:00");
   const [wakeTime, setWakeTime] = useState(profile?.wakeTime ?? "07:00");
+  const [patientLabel, setPatientLabel] = useState(profile?.patientLabel ?? "");
 
   // Synkroniser lokale state-værdier når profil opdateres via sync
   const prevProfileRef = useRef(profile);
@@ -21,6 +22,7 @@ export default function ProfilPage() {
       setBirthYear(profile.birthYear);
       setSleepTime(profile.sleepTime);
       setWakeTime(profile.wakeTime);
+      setPatientLabel(profile.patientLabel ?? "");
       prevProfileRef.current = profile;
     }
   }, [profile]);
@@ -28,7 +30,7 @@ export default function ProfilPage() {
   const age = profile ? new Date().getFullYear() - profile.birthYear : null;
 
   function save() {
-    setProfile({ sex, birthYear, sleepTime, wakeTime });
+    setProfile({ sex, birthYear, sleepTime, wakeTime, patientLabel: patientLabel.trim() || undefined });
     setTimeout(() => router.push("/registrer"), 100);
   }
 
@@ -46,6 +48,14 @@ export default function ProfilPage() {
               </button>
             ))}
           </div>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-[var(--muted)] mb-2 uppercase">Dit ID / initialer (valgfri)</label>
+          <input type="text" value={patientLabel} onChange={(e) => setPatientLabel(e.target.value)}
+            placeholder="F.eks. MM eller Patient 1"
+            className="w-full rounded-xl px-4 py-4 text-xl font-bold text-center"
+            style={{ background:"var(--surface)", border:"2px solid var(--border)", color:"var(--text)" }} />
+          <p className="text-xs mt-1" style={{ color:"var(--muted)" }}>Vises øverst i PDF-eksporten. Ingen navn eller CPR gemmes.</p>
         </div>
         <div>
           <label className="block text-sm font-semibold text-[var(--muted)] mb-2 uppercase">Fødselsår</label>

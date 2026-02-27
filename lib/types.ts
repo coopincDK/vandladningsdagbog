@@ -1,5 +1,5 @@
 export type Sex = "male" | "female";
-export interface UserProfile { sex: Sex; birthYear: number; sleepTime: string; wakeTime: string; }
+export interface UserProfile { sex: Sex; birthYear: number; sleepTime: string; wakeTime: string; patientLabel?: string; }
 export type EntryType = "intake" | "void" | "incontinence";
 export type IncontinenceSeverity = "dry" | "damp" | "wet" | "soaked";
 export type BeverageType = "vand" | "kaffe" | "te" | "juice" | "alkohol" | "sodavand" | "andet";

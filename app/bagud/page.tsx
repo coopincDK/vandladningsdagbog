@@ -32,6 +32,8 @@ interface Row {
   beverageType: BeverageType;
   intakeMl: number | null;
   customMl: string;
+  // fælles
+  note: string;
 }
 
 function newRow(time: string, type: RowType = "void"): Row {
@@ -45,6 +47,7 @@ function newRow(time: string, type: RowType = "void"): Row {
     beverageType: "vand",
     intakeMl: null,
     customMl: "",
+    note: "",
   };
 }
 
@@ -145,6 +148,7 @@ export default function BagudPage() {
           isEstimated: hasDuration,
           durationSeconds: hasDuration ? Number(row.durationSec) : undefined,
           urgencyScore: row.urgency,
+          note: row.note.trim() || undefined,
         };
         addEntry(entry);
         count++;
@@ -158,6 +162,7 @@ export default function BagudPage() {
           type: "intake",
           beverageType: row.beverageType,
           intakeMl: ml,
+          note: row.note.trim() || undefined,
         };
         addEntry(entry);
         count++;
@@ -300,6 +305,13 @@ export default function BagudPage() {
                     ))}
                   </div>
                 </div>
+                {/* Kommentar */}
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--muted)" }}>Kommentar</label>
+                  <input type="text" value={row.note} onChange={(e) => updateRow(row.id, { note: e.target.value })}
+                    placeholder="Valgfri bemærkning..." className="w-full rounded-xl px-3 py-2 text-sm"
+                    style={{ background: "var(--bg)", border: "2px solid var(--border)", color: "var(--text)" }} />
+                </div>
               </div>
             ) : (
               <div className="space-y-3">
@@ -345,6 +357,13 @@ export default function BagudPage() {
                     className="flex-1 min-w-[80px] rounded-xl px-3 py-2 text-sm text-center"
                     style={{ background: "var(--bg)", border: "2px solid var(--border)", color: "var(--text)" }}
                   />
+                </div>
+                {/* Kommentar */}
+                <div>
+                  <label className="block text-xs font-semibold uppercase mb-1" style={{ color: "var(--muted)" }}>Kommentar</label>
+                  <input type="text" value={row.note} onChange={(e) => updateRow(row.id, { note: e.target.value })}
+                    placeholder="Valgfri bemærkning..." className="w-full rounded-xl px-3 py-2 text-sm"
+                    style={{ background: "var(--bg)", border: "2px solid var(--border)", color: "var(--text)" }} />
                 </div>
               </div>
             )}

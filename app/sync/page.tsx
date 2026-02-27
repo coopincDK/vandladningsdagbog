@@ -10,6 +10,11 @@ function SyncContent() {
   const [joined, setJoined] = useState(false);
   const [manualId, setManualId] = useState("");
   const [copied, setCopied] = useState(false);
+  const [customId, setCustomId] = useState("");
+  const [customError, setCustomError] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [editId, setEditId] = useState("");
+  const [editError, setEditError] = useState("");
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -37,6 +42,26 @@ function SyncContent() {
   function handleCreate() {
     const id = createSyncRoom();
     setLocalRoom(id);
+  }
+
+  function handleCreateCustom() {
+    const id = customId.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (id.length < 4) { setCustomError("Mindst 4 tegn (bogstaver og tal)"); return; }
+    if (id.length > 20) { setCustomError("Maks 20 tegn"); return; }
+    setCustomError("");
+    joinSyncRoom(id);
+    setLocalRoom(id);
+  }
+
+  function handleEditSave() {
+    const id = editId.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (id.length < 4) { setEditError("Mindst 4 tegn"); return; }
+    if (id.length > 20) { setEditError("Maks 20 tegn"); return; }
+    setEditError("");
+    joinSyncRoom(id);
+    setLocalRoom(id);
+    setEditing(false);
+    setEditId("");
   }
 
   function handleLeave() {
@@ -92,10 +117,25 @@ function SyncContent() {
           {/* Opret nyt room */}
           <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
             <h2 className="font-bold text-lg mb-2">Opret nyt sync-room</h2>
-            <p className="text-sm text-[var(--muted)] mb-4">Opret et room og scan QR-koden på dine andre enheder.</p>
-            <button onClick={handleCreate} className="w-full py-5 rounded-2xl text-xl font-bold" style={{ background: "var(--accent)", color: "#fff" }}>
-              ➕ Opret sync-room
-            </button>
+            <p className="text-sm text-[var(--muted)] mb-3">Vælg dit eget ID du kan huske, eller få et tilfældigt.</p>
+            <input
+              type="text"
+              value={customId}
+              onChange={(e) => { setCustomId(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,"")); setCustomError(""); }}
+              placeholder="F.eks. MARTIN eller HUND42"
+              maxLength={20}
+              className="w-full rounded-xl px-4 py-4 text-2xl font-bold text-center tracking-widest mb-2"
+              style={{ background: "var(--bg)", border: `2px solid ${customError ? "var(--danger)" : "var(--border)"}`, color: "var(--text)" }}
+            />
+            {customError && <p className="text-xs mb-2" style={{ color: "var(--danger)" }}>{customError}</p>}
+            <div className="flex gap-3">
+              <button onClick={handleCreateCustom} disabled={customId.trim().length < 1} className="flex-1 py-4 rounded-2xl text-lg font-bold disabled:opacity-40" style={{ background: "var(--accent)", color: "#fff" }}>
+                ✅ Brug dette ID
+              </button>
+              <button onClick={handleCreate} className="py-4 px-4 rounded-2xl text-sm font-semibold" style={{ background: "var(--bg)", border: "2px solid var(--border)", color: "var(--muted)" }}>
+                🎲 Tilfældig
+              </button>
+            </div>
           </div>
 
           {/* Indtast kode manuelt */}
@@ -138,9 +178,44 @@ function SyncContent() {
                 {copied ? "✓ Kopieret" : "Kopiér"}
               </button>
             </div>
-            <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>
+            <p className="text-xs mb-3" style={{ color: "var(--muted)" }}>
               💡 <strong>Gem denne kode!</strong> Hvis du mister forbindelsen, kan du genforbinde ved at skrive koden manuelt.
             </p>
+
+            {/* Ret ID */}
+            {editing ? (
+              <div className="mb-4">
+                <input
+                  type="text"
+                  value={editId}
+                  onChange={(e) => { setEditId(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,"")); setEditError(""); }}
+                  placeholder="Nyt room-ID..."
+                  maxLength={20}
+                  autoFocus
+                  className="w-full rounded-xl px-4 py-3 text-xl font-bold text-center tracking-widest mb-2"
+                  style={{ background: "var(--bg)", border: `2px solid ${editError ? "var(--danger)" : "var(--accent)"}`, color: "var(--text)" }}
+                />
+                {editError && <p className="text-xs mb-2" style={{ color: "var(--danger)" }}>{editError}</p>}
+                <div className="flex gap-2">
+                  <button onClick={() => { setEditing(false); setEditId(""); setEditError(""); }}
+                    className="flex-1 py-2 rounded-xl text-sm font-semibold"
+                    style={{ background: "var(--bg)", border: "2px solid var(--border)", color: "var(--muted)" }}>
+                    Annuller
+                  </button>
+                  <button onClick={handleEditSave} disabled={editId.trim().length < 4}
+                    className="flex-1 py-2 rounded-xl text-sm font-bold disabled:opacity-40"
+                    style={{ background: "var(--accent)", color: "#fff" }}>
+                    Gem nyt ID
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={() => { setEditing(true); setEditId(localRoom ?? ""); }}
+                className="w-full py-2 rounded-xl text-sm font-semibold mb-4"
+                style={{ background: "var(--bg)", border: "2px solid var(--border)", color: "var(--muted)" }}>
+                ✏️ Skift room-ID
+              </button>
+            )}
 
             {/* Bogmærke-link */}
             <a
