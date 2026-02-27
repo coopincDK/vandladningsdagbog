@@ -80,7 +80,7 @@ export default function RegistrerPage() {
         </button>
         <button onClick={() => { setTimestamp(nowHHMM()); setMode("void-manual"); }} className="w-full py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3 active:scale-95" style={{ background:"var(--surface)", border:"2px solid var(--border)", color:"var(--text)" }}>🧪 Registrer med målbæger</button>
         <button onClick={() => { setTimestamp(nowHHMM()); setMode("intake"); }} className="w-full py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3 active:scale-95" style={{ background:"var(--surface)", border:"2px solid var(--border)", color:"var(--text)" }}>🥛 Registrer drik</button>
-        <button onClick={() => router.push("/bagud")} className="w-full py-4 rounded-2xl text-base font-semibold flex items-center justify-center gap-2 active:scale-95" style={{ background:"var(--surface)", border:"2px dashed var(--border)", color:"var(--muted)" }}>📋 Bagudregistrering — glemt mobilen?</button>
+        <button onClick={() => router.push("/bagud")} className="w-full py-4 rounded-2xl text-base font-semibold flex items-center justify-center gap-2 active:scale-95" style={{ background:"var(--surface)", border:"2px dashed var(--border)", color:"var(--muted)" }}>📋 Manuel registrering — flere på én gang</button>
       </div>
     </div>
   );

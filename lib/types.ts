@@ -13,6 +13,15 @@ export interface Entry {
 }
 
 export interface DiaryDay { id: string; date: string; dayNumber: 1 | 2 | 3; isTypicalDay: boolean; }
+export interface IPSSAnswer { a: number; b: number; comment?: string; }
+export interface IPSSResult {
+  answers: Record<number, IPSSAnswer>;
+  skipSex: boolean;
+  total: number;
+  sexTotal: number;
+  completedAt: string;
+}
+
 export interface Flag { key: string; label: string; color: "yellow" | "orange" | "red"; }
 export interface DaySummary {
   totalIntakeMl: number; totalVoidMl: number; dayVoids: number; nightVoids: number;

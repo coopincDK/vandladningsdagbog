@@ -9,6 +9,7 @@ interface SyncData {
   profile: import("./types").UserProfile | null;
   days: import("./types").DiaryDay[];
   entries: import("./types").Entry[];
+  ipssResult: import("./types").IPSSResult | null;
   updatedAt: string;
 }
 
@@ -66,6 +67,7 @@ export function useSync() {
   const profile = useStore((s) => s.profile);
   const days = useStore((s) => s.days);
   const entries = useStore((s) => s.entries);
+  const ipssResult = useStore((s) => s.ipssResult);
   const lastUploadHash = useRef<string>("");
   const isApplyingRemote = useRef(false);
   const roomId = typeof window !== "undefined" ? getSyncRoom() : null;
@@ -78,11 +80,11 @@ export function useSync() {
 
     const clean = (obj: unknown): unknown => JSON.parse(JSON.stringify(obj));
     const data: SyncData = clean({
-      profile, days, entries,
+      profile, days, entries, ipssResult,
       updatedAt: new Date().toISOString(),
     }) as SyncData;
 
-    const hash = JSON.stringify({ profile, days, entries });
+    const hash = JSON.stringify({ profile, days, entries, ipssResult });
     if (hash === lastUploadHash.current) return;
     lastUploadHash.current = hash;
 
@@ -112,6 +114,7 @@ export function useSync() {
         profile: data.profile,
         days: data.days,
         entries: data.entries,
+        ipssResult: data.ipssResult,
       });
       if (remoteHash === lastUploadHash.current) return;
 
@@ -127,6 +130,14 @@ export function useSync() {
         state.setProfile(data.profile);
       }
 
+      // Sæt IPSS hvis remote har et nyere resultat
+      if (data.ipssResult) {
+        const localIpss = state.ipssResult;
+        if (!localIpss || data.ipssResult.completedAt > localIpss.completedAt) {
+          state.setIpssResult(data.ipssResult);
+        }
+      }
+
       // Merge days (behold alle unikke, remote vinder ved konflikt)
       const mergedDays = mergeDays(currentDays, data.days ?? []);
       useStore.setState({ days: mergedDays });
@@ -140,6 +151,7 @@ export function useSync() {
         profile: data.profile ?? state.profile,
         days: mergedDays,
         entries: mergedEntries,
+        ipssResult: data.ipssResult ?? state.ipssResult,
       });
 
       // Frigiv flag efter kort delay

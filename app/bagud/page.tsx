@@ -74,6 +74,7 @@ export default function BagudPage() {
   const [interval, setInterval] = useState(15);
   const [rows, setRows] = useState<Row[]>([newRow(subMinutesFromHHMM(now, 60))]);
   const [saved, setSaved] = useState(false);
+  const [lastBeverage, setLastBeverage] = useState<BeverageType>("vand");
 
   // Generer tidspunkter automatisk baseret på startTime + interval
   function regenerateTimes(start: string, mins: number, currentRows: Row[]): Row[] {
@@ -93,10 +94,12 @@ export default function BagudPage() {
     setRows((prev) => regenerateTimes(startTime, val, prev));
   }
 
-  function addRow() {
+  function addRow(defaultType: RowType = "void") {
     const lastTime = rows.length > 0 ? rows[rows.length - 1].time : startTime;
     const nextTime = addMinutesToHHMM(lastTime, interval);
-    setRows((prev) => [...prev, newRow(nextTime)]);
+    const row = newRow(nextTime, defaultType);
+    if (defaultType === "intake") row.beverageType = lastBeverage;
+    setRows((prev) => [...prev, row]);
   }
 
   function removeRow(id: string) {
@@ -105,6 +108,8 @@ export default function BagudPage() {
 
   function updateRow(id: string, patch: Partial<Row>) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+    // Husk sidst valgte væsketype
+    if (patch.beverageType) setLastBeverage(patch.beverageType);
   }
 
   // Beregn estimat når sekunder ændres
@@ -175,9 +180,9 @@ export default function BagudPage() {
   return (
     <div className="max-w-lg mx-auto px-4 py-8">
       <button onClick={() => router.back()} className="text-[var(--muted)] mb-4">← Tilbage</button>
-      <h1 className="text-3xl font-bold mb-1">📋 Bagudregistrering</h1>
+      <h1 className="text-3xl font-bold mb-1">📋 Manuel registrering</h1>
       <p className="text-sm mb-6" style={{ color: "var(--muted)" }}>
-        Glemt mobilen? Tilføj flere hændelser på én gang.
+        Tilføj flere hændelser på én gang — f.eks. hvis du glemte mobilen.
       </p>
 
       {/* Indstillinger */}
@@ -234,7 +239,10 @@ export default function BagudPage() {
               <div className="flex items-center gap-2">
                 {/* Type toggle */}
                 <button
-                  onClick={() => updateRow(row.id, { type: row.type === "void" ? "intake" : "void" })}
+                  onClick={() => {
+                    const newType = row.type === "void" ? "intake" : "void";
+                    updateRow(row.id, { type: newType, ...(newType === "intake" ? { beverageType: lastBeverage } : {}) });
+                  }}
                   className="text-xs px-3 py-1 rounded-lg font-semibold"
                   style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--muted)" }}
                 >
@@ -345,13 +353,22 @@ export default function BagudPage() {
       </div>
 
       {/* Tilføj række */}
-      <button
-        onClick={addRow}
-        className="w-full py-3 rounded-2xl text-base font-semibold mb-6"
-        style={{ background: "var(--surface)", border: "2px dashed var(--border)", color: "var(--muted)" }}
-      >
-        + Tilføj hændelse
-      </button>
+      <div className="flex gap-3 mb-6">
+        <button
+          onClick={() => addRow("void")}
+          className="flex-1 py-3 rounded-2xl text-sm font-semibold"
+          style={{ background: "var(--surface)", border: "2px dashed var(--border)", color: "var(--muted)" }}
+        >
+          + Vandladning
+        </button>
+        <button
+          onClick={() => addRow("intake")}
+          className="flex-1 py-3 rounded-2xl text-sm font-semibold"
+          style={{ background: "var(--surface)", border: "2px dashed var(--border)", color: "var(--muted)" }}
+        >
+          + Drik ({lastBeverage})
+        </button>
+      </div>
 
       {/* Gem */}
       {saved ? (

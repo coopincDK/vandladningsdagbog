@@ -1,25 +1,28 @@
 "use client";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { UserProfile, Entry, DiaryDay } from "./types";
+import type { UserProfile, Entry, DiaryDay, IPSSResult } from "./types";
 import { format } from "date-fns";
 
 interface AppState {
   profile: UserProfile | null;
   days: DiaryDay[];
   entries: Entry[];
+  ipssResult: IPSSResult | null;
   setProfile: (p: UserProfile) => void;
   ensureDay: (n: 1 | 2 | 3) => DiaryDay;
   addEntry: (e: Entry) => void;
   updateEntry: (id: string, patch: Partial<Entry>) => void;
   deleteEntry: (id: string) => void;
+  setIpssResult: (r: IPSSResult) => void;
 }
 
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
-      profile: null, days: [], entries: [],
+      profile: null, days: [], entries: [], ipssResult: null,
       setProfile: (p) => set({ profile: p }),
+      setIpssResult: (r) => set({ ipssResult: r }),
       ensureDay: (n) => {
         const ex = get().days.find((d) => d.dayNumber === n);
         if (ex) return ex;
