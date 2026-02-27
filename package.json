@@ -15,7 +15,8 @@
     "jspdf-autotable": "^3.8.2",
     "date-fns": "^3.6.0",
     "zustand": "^4.5.4",
-    "recharts": "^2.12.7"
+    "recharts": "^2.12.7",
+    "firebase": "^10.12.0"
   },
   "devDependencies": {
     "typescript": "^5",
