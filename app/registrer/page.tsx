@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { estimateVolume } from "@/lib/qavg";
 import type { BeverageType, IncontinenceSeverity } from "@/lib/types";
@@ -20,6 +21,7 @@ const nowHHMM = () => format(new Date(), "HH:mm");
 const timeToISO = (hhmm: string) => { const [h,m] = hhmm.split(":").map(Number); const d = new Date(); d.setHours(h,m,0,0); return d.toISOString(); };
 
 export default function RegistrerPage() {
+  const router = useRouter();
   const { profile, ensureDay, addEntry } = useStore();
   const [mode, setMode] = useState<Mode>("home");
   const [running, setRunning] = useState(false);
@@ -78,6 +80,7 @@ export default function RegistrerPage() {
         </button>
         <button onClick={() => { setTimestamp(nowHHMM()); setMode("void-manual"); }} className="w-full py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3 active:scale-95" style={{ background:"var(--surface)", border:"2px solid var(--border)", color:"var(--text)" }}>🧪 Registrer med målbæger</button>
         <button onClick={() => { setTimestamp(nowHHMM()); setMode("intake"); }} className="w-full py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3 active:scale-95" style={{ background:"var(--surface)", border:"2px solid var(--border)", color:"var(--text)" }}>🥛 Registrer drik</button>
+        <button onClick={() => router.push("/bagud")} className="w-full py-4 rounded-2xl text-base font-semibold flex items-center justify-center gap-2 active:scale-95" style={{ background:"var(--surface)", border:"2px dashed var(--border)", color:"var(--muted)" }}>📋 Bagudregistrering — glemt mobilen?</button>
       </div>
     </div>
   );
