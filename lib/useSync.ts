@@ -4,13 +4,41 @@ import { doc, setDoc, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
 import { useStore } from "./store";
 import { useAuth } from "./useAuth";
-import type { UserProfile, Entry, DiaryDay } from "./types";
 
 interface SyncData {
-  profile: UserProfile | null;
-  days: DiaryDay[];
-  entries: Entry[];
+  profile: import("./types").UserProfile | null;
+  days: import("./types").DiaryDay[];
+  entries: import("./types").Entry[];
   updatedAt: string;
+}
+
+// Hent eller opret sync-room ID fra localStorage
+function getSyncRoom(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("sync-room");
+}
+
+function setSyncRoom(id: string) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("sync-room", id);
+}
+
+export function createSyncRoom(): string {
+  // Generer et kort, menneskevenligt ID
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let id = "";
+  for (let i = 0; i < 8; i++) id += chars[Math.floor(Math.random() * chars.length)];
+  setSyncRoom(id);
+  return id;
+}
+
+export function joinSyncRoom(id: string) {
+  setSyncRoom(id);
+}
+
+export function leaveSyncRoom() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("sync-room");
 }
 
 export function useSync() {
@@ -20,20 +48,17 @@ export function useSync() {
   const entries = useStore((s) => s.entries);
   const lastSyncRef = useRef<string>("");
   const isRemoteUpdate = useRef(false);
+  const roomId = typeof window !== "undefined" ? getSyncRoom() : null;
 
-  const docRef = useMemo(() => uid ? doc(db, "users", uid) : null, [uid]);
+  const docRef = useMemo(() => roomId ? doc(db, "rooms", roomId) : null, [roomId]);
 
   // Upload til Firestore
   const upload = useCallback(async () => {
     if (!docRef || isRemoteUpdate.current) return;
 
-    // Fjern undefined-felter (Firestore tillader dem ikke)
     const clean = (obj: unknown): unknown => JSON.parse(JSON.stringify(obj));
-
     const data: SyncData = clean({
-      profile,
-      days,
-      entries,
+      profile, days, entries,
       updatedAt: new Date().toISOString(),
     }) as SyncData;
 
@@ -70,12 +95,12 @@ export function useSync() {
       isRemoteUpdate.current = true;
       const state = useStore.getState();
       if (data.profile) state.setProfile(data.profile);
-      if (data.days) useStore.setState({ days: data.days });
-      if (data.entries) useStore.setState({ entries: data.entries });
+      if (data.days?.length) useStore.setState({ days: data.days });
+      if (data.entries?.length) useStore.setState({ entries: data.entries });
       setTimeout(() => { isRemoteUpdate.current = false; }, 500);
     });
     return unsub;
   }, [docRef]);
 
-  return { uid, syncing: !!docRef };
+  return { uid, roomId, syncing: !!docRef };
 }
