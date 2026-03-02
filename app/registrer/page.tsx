@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { estimateVolume } from "@/lib/qavg";
-import type { BeverageType, IncontinenceSeverity } from "@/lib/types";
+import type { BeverageType, IncontinenceSeverity, Entry, DiaryDay } from "@/lib/types";
 import { format } from "date-fns";
 
 type Mode = "home" | "void-timer" | "void-manual" | "intake";
@@ -20,9 +20,73 @@ const SEVERITY_OPTIONS: { value: IncontinenceSeverity; label: string }[] = [
 const nowHHMM = () => format(new Date(), "HH:mm");
 const timeToISO = (hhmm: string) => { const [h,m] = hhmm.split(":").map(Number); const d = new Date(); d.setHours(h,m,0,0); return d.toISOString(); };
 
+// ── Væske-facts per driktype ───────────────────────────────────────
+const BEVERAGE_FACTS: Record<string, string> = {
+  sodavand: "Sodavand indeholder koffein og sukker, som begge kan irritere blæren og øge vandladningstrang. Boblerne kan også øge trykket i blæren.",
+  kaffe:    "Kaffe er et mildt vanddrivende middel og kan irritere blæren — men 1-2 kopper om dagen er for de fleste uproblematisk.",
+  alkohol:  "Alkohol hæmmer ADH-hormonet, som normalt bremser urinproduktionen — derfor tisser man mere efter alkohol.",
+  te:       "Te (særligt sort og grøn) indeholder koffein og tanniner, der kan irritere blæren. Urtete er generelt mere blærevenlig.",
+  juice:    "Juice er syrlig og kan irritere blæren — særligt citrusjuice. Æblejuice er mildere.",
+  vand:     "Vand er den mest blærevenlige drik. Det fortynder urinen og reducerer irritation af blæreslimhinden.",
+  andet:    "",
+};
+
+// ── Væske-coach ────────────────────────────────────────────────────
+function VæskeCoach({ entries, day }: { entries: Entry[]; day: DiaryDay | undefined }) {
+  const dayEntries = day ? entries.filter((e) => e.dayId === day.id) : [];
+  const intakes = dayEntries.filter((e) => e.type === "intake" && e.intakeMl);
+  const totalMl = intakes.reduce((s, e) => s + (e.intakeMl ?? 0), 0);
+  const goalMl = 2000;
+  const pct = Math.min(100, Math.round((totalMl / goalMl) * 100));
+  const remaining = Math.max(0, goalMl - totalMl);
+
+  // Seneste driktype for fun fact
+  const lastIntake = [...intakes].sort((a,b) => b.timestamp.localeCompare(a.timestamp))[0];
+  const fact = lastIntake ? BEVERAGE_FACTS[lastIntake.beverageType ?? "andet"] : null;
+
+  // Farve på progress
+  const barColor = pct >= 100 ? "#22c55e" : pct >= 60 ? "var(--accent)" : "#f59e0b";
+
+  // Besked
+  let msg = "";
+  if (totalMl === 0)       msg = "Husk at registrere hvad du drikker — det giver et bedre billede af din blærefunktion.";
+  else if (pct < 40)       msg = `Du har drukket ${totalMl} ml. Prøv at nå ${goalMl} ml i løbet af dagen — ${remaining} ml tilbage.`;
+  else if (pct < 75)       msg = `Godt gang — ${totalMl} ml drukket. ${remaining} ml tilbage til dagens mål.`;
+  else if (pct < 100)      msg = `Næsten i mål! Kun ${remaining} ml tilbage.`;
+  else                     msg = `Dagens væskemål nået (${totalMl} ml). Godt klaret!`;
+
+  return (
+    <div className="rounded-2xl p-4 mb-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+      <div className="flex justify-between items-center mb-2">
+        <p className="text-sm font-semibold">💧 Væskeindtag i dag</p>
+        <p className="text-sm font-bold" style={{ color: barColor }}>{totalMl} / {goalMl} ml</p>
+      </div>
+      {/* Progress bar */}
+      <div className="w-full h-3 rounded-full overflow-hidden mb-2" style={{ background: "var(--bg)" }}>
+        <div className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, background: barColor }} />
+      </div>
+      {/* Segmenter: 0 / 500 / 1000 / 1500 / 2000 */}
+      <div className="flex justify-between text-xs mb-3" style={{ color: "var(--muted)" }}>
+        <span>0</span><span>500</span><span>1000</span><span>1500</span><span>2000 ml</span>
+      </div>
+      <p className="text-xs mb-3" style={{ color: "var(--muted)" }}>{msg}</p>
+      {/* Fun fact */}
+      {fact && (
+        <div className="rounded-xl px-3 py-2" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
+          <p className="text-xs leading-relaxed" style={{ color: "var(--muted)" }}>
+            <span className="font-semibold" style={{ color: "var(--text)" }}>💡 Vidste du? </span>
+            {fact}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function RegistrerPage() {
   const router = useRouter();
-  const { profile, ensureDay, addEntry } = useStore();
+  const { profile, days, entries, ensureDay, addEntry } = useStore();
   const [mode, setMode] = useState<Mode>("home");
   const [dayNum, setDayNum] = useState<1|2|3>(1);
   const [running, setRunning] = useState(false);
@@ -69,6 +133,8 @@ export default function RegistrerPage() {
 
   if (!profile) return <div className="max-w-lg mx-auto px-4 py-8 text-center"><p style={{ color:"var(--muted)" }}>Udfyld din profil først</p></div>;
 
+  const currentDay = days.find((d) => d.dayNumber === dayNum);
+
   if (mode === "home") return (
     <div className="max-w-lg mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-4">
@@ -76,7 +142,7 @@ export default function RegistrerPage() {
         <Link href="/profil" className="text-sm px-3 py-2 rounded-xl" style={{ background:"var(--surface)", border:"1px solid var(--border)", color:"var(--muted)" }}>👤 Profil</Link>
       </div>
       {/* Dag-vælger */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-4">
         {([1,2,3] as const).map((n) => (
           <button key={n} onClick={() => setDayNum(n)} className="flex-1 py-2 rounded-xl border-2 text-base font-semibold"
             style={{ background: dayNum===n ? "var(--accent)" : "var(--surface)", borderColor: dayNum===n ? "var(--accent)" : "var(--border)", color: dayNum===n ? "#fff" : "var(--text)" }}>
@@ -84,11 +150,13 @@ export default function RegistrerPage() {
           </button>
         ))}
       </div>
+      {/* Væske-coach */}
+      <VæskeCoach entries={entries} day={currentDay} />
       <div className="space-y-4">
         <button onClick={startTimer} className="w-full py-8 rounded-2xl text-2xl font-bold flex flex-col items-center gap-2 active:scale-95 transition-transform" style={{ background:"var(--accent)", color:"#fff" }}>
           <span className="text-5xl">💧</span>Start vandladning<span className="text-sm font-normal opacity-80">Timer-baseret estimat</span>
         </button>
-        <button onClick={() => { setTimestamp(nowHHMM()); setMode("void-manual"); }} className="w-full py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3 active:scale-95" style={{ background:"var(--surface)", border:"2px solid var(--border)", color:"var(--text)" }}>🧪 Registrer med målbæger</button>
+        <button onClick={() => { setTimestamp(nowHHMM()); setMode("void-manual"); }} className="w-full py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3 active:scale-95" style={{ background:"var(--surface)", border:"2px solid var(--border)", color:"var(--text)" }}>🧪 Registrer med målebæger</button>
         <button onClick={() => { setTimestamp(nowHHMM()); setMode("intake"); }} className="w-full py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3 active:scale-95" style={{ background:"var(--surface)", border:"2px solid var(--border)", color:"var(--text)" }}>🥛 Registrer drik</button>
         <button onClick={() => router.push("/bagud")} className="w-full py-4 rounded-2xl text-base font-semibold flex items-center justify-center gap-2 active:scale-95" style={{ background:"var(--surface)", border:"2px dashed var(--border)", color:"var(--muted)" }}>📋 Manuel registrering — flere på én gang</button>
       </div>
@@ -118,7 +186,7 @@ export default function RegistrerPage() {
   if (mode === "void-manual") return (
     <div className="max-w-lg mx-auto px-4 py-8">
       <button onClick={resetAll} className="text-[var(--muted)] mb-4">← Tilbage</button>
-      <h1 className="text-2xl font-bold mb-6">Vandladning med målbæger</h1>
+      <h1 className="text-2xl font-bold mb-6">Vandladning med målebæger</h1>
       <div className="space-y-4">
         <TimeField value={timestamp} onChange={setTimestamp} />
         <div><label className="block text-sm font-semibold text-[var(--muted)] mb-2 uppercase">Mængde (ml)</label><input type="number" value={voidMl} onChange={(e) => setVoidMl(e.target.value)} placeholder="f.eks. 250" className="w-full rounded-xl px-4 py-4 text-2xl font-bold text-center" style={{ background:"var(--surface)", border:"2px solid var(--border)", color:"var(--text)" }} /></div>
@@ -139,6 +207,15 @@ export default function RegistrerPage() {
         <div><label className="block text-sm font-semibold text-[var(--muted)] mb-3 uppercase">Type</label>
           <div className="grid grid-cols-4 gap-3">{BEVERAGES.map((b) => (<button key={b.type} onClick={() => setBeverage(b.type)} className="flex flex-col items-center gap-1 py-3 rounded-xl border-2" style={{ background:beverage===b.type?"var(--accent)":"var(--surface)", borderColor:beverage===b.type?"var(--accent)":"var(--border)" }}><span className="text-3xl">{b.icon}</span><span className="text-xs">{b.label}</span></button>))}</div>
         </div>
+        {/* Fun fact ved valgt driktype */}
+        {BEVERAGE_FACTS[beverage] && (
+          <div className="rounded-xl px-3 py-2" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
+            <p className="text-xs leading-relaxed" style={{ color:"var(--muted)" }}>
+              <span className="font-semibold" style={{ color:"var(--text)" }}>💡 </span>
+              {BEVERAGE_FACTS[beverage]}
+            </p>
+          </div>
+        )}
         <div><label className="block text-sm font-semibold text-[var(--muted)] mb-3 uppercase">Mængde</label>
           <div className="grid grid-cols-5 gap-2 mb-3">{QUICK_ML.map((ml) => (<button key={ml} onClick={() => { setIntakeMl(ml); setCustomMl(""); }} className="py-3 rounded-xl border-2 text-sm font-bold" style={{ background:intakeMl===ml?"var(--accent)":"var(--surface)", borderColor:intakeMl===ml?"var(--accent)":"var(--border)" }}>{ml}</button>))}</div>
           <input type="number" value={customMl} onChange={(e) => { setCustomMl(e.target.value); setIntakeMl(null); }} placeholder="Anden mængde (ml)" className="w-full rounded-xl px-4 py-3 text-lg text-center" style={{ background:"var(--surface)", border:"2px solid var(--border)", color:"var(--text)" }} />

@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useStore } from "@/lib/store";
-import { format, parse, addDays } from "date-fns";
+import { format } from "date-fns";
 import { da } from "date-fns/locale";
 import type { Entry } from "@/lib/types";
 
@@ -15,39 +15,48 @@ function label(e: Entry) {
   return `Inkontinens: ${SEV[e.severity??"damp"]}${e.activity?` · ${e.activity}`:""}`;
 }
 
-// Givet et timestamp og profil: hvilken "dag-periode" (1/2/3) hører det til?
-// Dag 1 starter ved opståtid på dag 1, dag 2 ved opståtid dag 2 osv.
-// Vi bruger den tidligste entry's dato som dag 1 reference.
+// Konverter HH:mm til minutter siden midnat
+function hhmmToMin(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+// Givet et timestamp: hvilken dag-periode (1/2/3) hører det til?
+// Logik: En "dag" starter ved opståtid og slutter ved næste opståtid.
+// Nat-timer (før opståtid) hører til SAMME dag som den efterfølgende morgen.
 function assignDayNumber(
   entryTs: string,
   allEntries: Entry[],
-  wakeTime: string // "HH:mm"
+  wakeTime: string
 ): 1 | 2 | 3 {
   if (allEntries.length === 0) return 1;
 
-  // Find den tidligste entry's dato som reference for dag 1
-  const sorted = [...allEntries].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-  const firstDate = new Date(sorted[0].timestamp);
-
-  // Opståtid som Date på dag 1
-  const [wh, wm] = wakeTime.split(":").map(Number);
-  const wake1 = new Date(firstDate);
-  wake1.setHours(wh, wm, 0, 0);
-
-  // Hvis første entry er FØR opståtid, start dag 1 fra midnat den dag
-  // Ellers start dag 1 fra opståtid
-  const day1Start = wake1;
-  const day2Start = addDays(wake1, 1);
-  const day3Start = addDays(wake1, 2);
-  const day3End = addDays(wake1, 3);
-
+  const wakeMin = hhmmToMin(wakeTime);
   const ts = new Date(entryTs);
+  const entryMin = ts.getHours() * 60 + ts.getMinutes();
 
-  if (ts < day1Start) return 1; // Før opståtid dag 1 — hører til dag 1
-  if (ts < day2Start) return 1;
-  if (ts < day3Start) return 2;
-  if (ts < day3End) return 3;
-  return 3; // Alt efter dag 3 hører til dag 3
+  // Hvis entry er før opståtid (nat), hører den til forrige dags periode
+  // Så vi justerer datoen: nat kl 02:00 hører til dagen før
+  const adjustedDate = new Date(ts);
+  if (entryMin < wakeMin) {
+    adjustedDate.setDate(adjustedDate.getDate() - 1);
+  }
+  const adjustedDateStr = adjustedDate.toISOString().slice(0, 10); // YYYY-MM-DD
+
+  // Find alle unikke justerede datoer og sorter dem
+  const uniqueDates = [...new Set(
+    allEntries.map((e) => {
+      const d = new Date(e.timestamp);
+      const eMin = d.getHours() * 60 + d.getMinutes();
+      if (eMin < wakeMin) d.setDate(d.getDate() - 1);
+      return d.toISOString().slice(0, 10);
+    })
+  )].sort();
+
+  const idx = uniqueDates.indexOf(adjustedDateStr);
+  if (idx <= 0) return 1;
+  if (idx === 1) return 2;
+  return 3;
 }
 
 export default function DagbogPage() {
