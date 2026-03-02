@@ -16,7 +16,7 @@ function label(e: Entry) {
 }
 
 export default function DagbogPage() {
-  const { days, entries, updateEntry, deleteEntry } = useStore();
+  const { days, entries, updateEntry, deleteEntry, ensureDay } = useStore();
   const [dayNum, setDayNum] = useState<1|2|3>(1);
   const [editId, setEditId] = useState<string|null>(null);
   const day = days.find((d) => d.dayNumber === dayNum);
@@ -41,7 +41,15 @@ export default function DagbogPage() {
                 <button onClick={() => setEditId(editId===e.id?null:e.id)} className="text-sm px-2 py-1 rounded-lg" style={{ background:"var(--bg)", border:"1px solid var(--border)", color:"var(--muted)" }}>✏️</button>
               </div>
             </div>
-            {editId===e.id && <EditRow entry={e} onSave={(patch) => { updateEntry(e.id, patch); setEditId(null); }} onDelete={() => { deleteEntry(e.id); setEditId(null); }} />}
+            {editId===e.id && <EditRow entry={e}
+              onSave={(patch) => { updateEntry(e.id, patch); setEditId(null); }}
+              onDelete={() => { deleteEntry(e.id); setEditId(null); }}
+              onMove={(n) => {
+                const targetDay = ensureDay(n);
+                updateEntry(e.id, { dayId: targetDay.id });
+                setEditId(null);
+              }}
+            />}
           </div>
         ))}</div>
       )}
@@ -73,6 +81,18 @@ function EditRow({ entry, onSave, onDelete }: { entry: Entry; onSave: (p: Partia
       <div className="flex gap-2">
         <button onClick={save} className="flex-1 py-2 rounded-lg text-sm font-bold" style={{ background:"var(--accent)", color:"#fff" }}>Gem</button>
         {!confirm ? <button onClick={() => setConfirm(true)} className="py-2 px-3 rounded-lg text-sm" style={{ border:"1px solid var(--danger)", color:"var(--danger)" }}>🗑</button> : <button onClick={onDelete} className="py-2 px-3 rounded-lg text-sm font-bold" style={{ background:"var(--danger)", color:"#fff" }}>Slet?</button>}
+      </div>
+      <div>
+        <p className="text-xs text-[var(--muted)] mb-1">Flyt til dag</p>
+        <div className="flex gap-2">
+          {([1,2,3] as const).map((n) => (
+            <button key={n} onClick={() => onMove(n)}
+              className="flex-1 py-1 rounded-lg text-sm font-semibold"
+              style={{ background:"var(--bg)", border:"1px solid var(--border)", color:"var(--muted)" }}>
+              Dag {n}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

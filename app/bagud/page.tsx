@@ -78,6 +78,7 @@ export default function BagudPage() {
   const [rows, setRows] = useState<Row[]>([newRow(subMinutesFromHHMM(now, 60))]);
   const [saved, setSaved] = useState(false);
   const [lastBeverage, setLastBeverage] = useState<BeverageType>("vand");
+  const [dayNum, setDayNum] = useState<1|2|3>(1);
 
   // Generer tidspunkter automatisk baseret på startTime + interval
   function regenerateTimes(start: string, mins: number, currentRows: Row[]): Row[] {
@@ -132,7 +133,7 @@ export default function BagudPage() {
   }
 
   function saveAll() {
-    const day = ensureDay(1);
+    const day = ensureDay(dayNum);
     let count = 0;
     for (const row of rows) {
       if (row.type === "void") {
@@ -186,9 +187,18 @@ export default function BagudPage() {
     <div className="max-w-lg mx-auto px-4 py-8">
       <button onClick={() => router.back()} className="text-[var(--muted)] mb-4">← Tilbage</button>
       <h1 className="text-3xl font-bold mb-1">📋 Manuel registrering</h1>
-      <p className="text-sm mb-6" style={{ color: "var(--muted)" }}>
+      <p className="text-sm mb-4" style={{ color: "var(--muted)" }}>
         Tilføj flere hændelser på én gang — f.eks. hvis du glemte mobilen.
       </p>
+      {/* Dag-vælger */}
+      <div className="flex gap-2 mb-6">
+        {([1,2,3] as const).map((n) => (
+          <button key={n} onClick={() => setDayNum(n)} className="flex-1 py-2 rounded-xl border-2 text-base font-semibold"
+            style={{ background: dayNum===n ? "var(--accent)" : "var(--surface)", borderColor: dayNum===n ? "var(--accent)" : "var(--border)", color: dayNum===n ? "#fff" : "var(--text)" }}>
+            Dag {n}
+          </button>
+        ))}
+      </div>
 
       {/* Indstillinger */}
       <div className="rounded-2xl p-4 mb-6 space-y-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>

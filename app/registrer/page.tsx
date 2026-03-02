@@ -24,6 +24,7 @@ export default function RegistrerPage() {
   const router = useRouter();
   const { profile, ensureDay, addEntry } = useStore();
   const [mode, setMode] = useState<Mode>("home");
+  const [dayNum, setDayNum] = useState<1|2|3>(1);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [estimated, setEstimated] = useState<number | null>(null);
@@ -53,7 +54,7 @@ export default function RegistrerPage() {
   function stopTimer() { setRunning(false); if (profile) { const est = estimateVolume(profile.sex, profile.birthYear, elapsed); setEstimated(est); setVoidMl(String(est)); } }
 
   function saveVoid(isEst: boolean) {
-    const day = ensureDay(1);
+    const day = ensureDay(dayNum);
     addEntry({ id: crypto.randomUUID(), dayId: day.id, timestamp: timeToISO(timestamp), type: "void", voidMl: Number(voidMl), isEstimated: isEst, durationSeconds: isEst ? elapsed : undefined, urgencyScore: urgency, note: note.trim() || undefined });
     if (hasInc) addEntry({ id: crypto.randomUUID(), dayId: day.id, timestamp: timeToISO(timestamp), type: "incontinence", severity, activity });
     resetAll();
@@ -61,7 +62,7 @@ export default function RegistrerPage() {
 
   function saveIntake() {
     const ml = intakeMl ?? Number(customMl); if (!ml) return;
-    const day = ensureDay(1);
+    const day = ensureDay(dayNum);
     addEntry({ id: crypto.randomUUID(), dayId: day.id, timestamp: timeToISO(timestamp), type: "intake", beverageType: beverage, intakeMl: ml, note: note.trim() || undefined });
     resetAll();
   }
@@ -70,9 +71,18 @@ export default function RegistrerPage() {
 
   if (mode === "home") return (
     <div className="max-w-lg mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-4">
         <h1 className="text-3xl font-bold">Registrer</h1>
         <Link href="/profil" className="text-sm px-3 py-2 rounded-xl" style={{ background:"var(--surface)", border:"1px solid var(--border)", color:"var(--muted)" }}>👤 Profil</Link>
+      </div>
+      {/* Dag-vælger */}
+      <div className="flex gap-2 mb-6">
+        {([1,2,3] as const).map((n) => (
+          <button key={n} onClick={() => setDayNum(n)} className="flex-1 py-2 rounded-xl border-2 text-base font-semibold"
+            style={{ background: dayNum===n ? "var(--accent)" : "var(--surface)", borderColor: dayNum===n ? "var(--accent)" : "var(--border)", color: dayNum===n ? "#fff" : "var(--text)" }}>
+            Dag {n}
+          </button>
+        ))}
       </div>
       <div className="space-y-4">
         <button onClick={startTimer} className="w-full py-8 rounded-2xl text-2xl font-bold flex flex-col items-center gap-2 active:scale-95 transition-transform" style={{ background:"var(--accent)", color:"#fff" }}>
