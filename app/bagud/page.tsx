@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { MAX_DAYS } from "@/lib/dayUtils";
 import { useStore } from "@/lib/store";
 import { estimateVolume } from "@/lib/qavg";
 import type { BeverageType, Entry } from "@/lib/types";
@@ -78,7 +79,7 @@ export default function BagudPage() {
   const [rows, setRows] = useState<Row[]>([newRow(subMinutesFromHHMM(now, 60))]);
   const [saved, setSaved] = useState(false);
   const [lastBeverage, setLastBeverage] = useState<BeverageType>("vand");
-  const [dayNum, setDayNum] = useState<1|2|3>(1);
+  const [dayNum, setDayNum] = useState<number>(1);
 
   // Generer tidspunkter automatisk baseret på startTime + interval
   function regenerateTimes(start: string, mins: number, currentRows: Row[]): Row[] {
@@ -190,11 +191,12 @@ export default function BagudPage() {
       <p className="text-sm mb-4" style={{ color: "var(--muted)" }}>
         Tilføj flere hændelser på én gang — f.eks. hvis du glemte mobilen.
       </p>
-      {/* Dag-vælger */}
-      <div className="flex gap-2 mb-6">
-        {([1,2,3] as const).map((n) => (
-          <button key={n} onClick={() => setDayNum(n)} className="flex-1 py-2 rounded-xl border-2 text-base font-semibold"
-            style={{ background: dayNum===n ? "var(--accent)" : "var(--surface)", borderColor: dayNum===n ? "var(--accent)" : "var(--border)", color: dayNum===n ? "#fff" : "var(--text)" }}>
+      {/* Dag-vælger — scrollbar */}
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+        {Array.from({ length: MAX_DAYS }, (_, i) => i + 1).map((n) => (
+          <button key={n} onClick={() => setDayNum(n)}
+            className="flex-shrink-0 px-4 py-2 rounded-xl border-2 text-base font-semibold"
+            style={{ background: dayNum===n ? "var(--accent)" : "var(--surface)", borderColor: dayNum===n ? "var(--accent)" : "var(--border)", color: dayNum===n ? "#fff" : "var(--text)", minWidth: "4rem" }}>
             Dag {n}
           </button>
         ))}

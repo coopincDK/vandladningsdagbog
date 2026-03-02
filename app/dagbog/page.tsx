@@ -175,7 +175,7 @@ export default function DagbogPage() {
   );
 }
 
-function EditRow({ entry, onSave, onDelete, onMove }: { entry: Entry; onSave: (p: Partial<Entry>) => void; onDelete: () => void; onMove: (n: 1|2|3) => void }) {
+function EditRow({ entry, onSave, onDelete, onMove }: { entry: Entry; onSave: (p: Partial<Entry>) => void; onDelete: () => void; onMove: (n: number) => void }) {
   const [ml, setMl] = useState(String(entry.voidMl ?? entry.intakeMl ?? ""));
   const [time, setTime] = useState(format(new Date(entry.timestamp), "HH:mm"));
   const [note, setNote] = useState(entry.note ?? "");
