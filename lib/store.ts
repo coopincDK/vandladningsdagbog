@@ -30,8 +30,8 @@ export const useStore = create<AppState>()(
         set((s) => ({ days: [...s.days, d] }));
         return d;
       },
-      addEntry: (e) => set((s) => ({ entries: [...s.entries, e] })),
-      updateEntry: (id, patch) => set((s) => ({ entries: s.entries.map((e) => (e.id === id ? { ...e, ...patch } : e)) })),
+      addEntry: (e) => set((s) => ({ entries: [...s.entries, { ...e, updatedAt: new Date().toISOString() }] })),
+      updateEntry: (id, patch) => set((s) => ({ entries: s.entries.map((e) => (e.id === id ? { ...e, ...patch, updatedAt: new Date().toISOString() } : e)) })),
       deleteEntry: (id) => set((s) => ({ entries: s.entries.filter((e) => e.id !== id) })),
     }),
     { name: "dagbog-store" }

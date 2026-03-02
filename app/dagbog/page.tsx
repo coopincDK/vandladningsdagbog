@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useStore } from "@/lib/store";
-import { format } from "date-fns";
+import { format, parse, addDays } from "date-fns";
 import { da } from "date-fns/locale";
 import type { Entry } from "@/lib/types";
 
@@ -15,19 +15,124 @@ function label(e: Entry) {
   return `Inkontinens: ${SEV[e.severity??"damp"]}${e.activity?` · ${e.activity}`:""}`;
 }
 
+// Givet et timestamp og profil: hvilken "dag-periode" (1/2/3) hører det til?
+// Dag 1 starter ved opståtid på dag 1, dag 2 ved opståtid dag 2 osv.
+// Vi bruger den tidligste entry's dato som dag 1 reference.
+function assignDayNumber(
+  entryTs: string,
+  allEntries: Entry[],
+  wakeTime: string // "HH:mm"
+): 1 | 2 | 3 {
+  if (allEntries.length === 0) return 1;
+
+  // Find den tidligste entry's dato som reference for dag 1
+  const sorted = [...allEntries].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  const firstDate = new Date(sorted[0].timestamp);
+
+  // Opståtid som Date på dag 1
+  const [wh, wm] = wakeTime.split(":").map(Number);
+  const wake1 = new Date(firstDate);
+  wake1.setHours(wh, wm, 0, 0);
+
+  // Hvis første entry er FØR opståtid, start dag 1 fra midnat den dag
+  // Ellers start dag 1 fra opståtid
+  const day1Start = wake1;
+  const day2Start = addDays(wake1, 1);
+  const day3Start = addDays(wake1, 2);
+  const day3End = addDays(wake1, 3);
+
+  const ts = new Date(entryTs);
+
+  if (ts < day1Start) return 1; // Før opståtid dag 1 — hører til dag 1
+  if (ts < day2Start) return 1;
+  if (ts < day3Start) return 2;
+  if (ts < day3End) return 3;
+  return 3; // Alt efter dag 3 hører til dag 3
+}
+
 export default function DagbogPage() {
-  const { days, entries, updateEntry, deleteEntry, ensureDay } = useStore();
+  const { days, entries, profile, updateEntry, deleteEntry, ensureDay } = useStore();
   const [dayNum, setDayNum] = useState<1|2|3>(1);
   const [editId, setEditId] = useState<string|null>(null);
+  const [autoSorted, setAutoSorted] = useState(false);
+
   const day = days.find((d) => d.dayNumber === dayNum);
-  const dayEntries = day ? entries.filter((e) => e.dayId === day.id).sort((a,b) => a.timestamp.localeCompare(b.timestamp)) : [];
+  const dayEntries = day
+    ? entries.filter((e) => e.dayId === day.id).sort((a,b) => a.timestamp.localeCompare(b.timestamp))
+    : [];
+
+  // Tæl entries per dag til badge
+  const countForDay = (n: 1|2|3) => {
+    const d = days.find((d) => d.dayNumber === n);
+    return d ? entries.filter((e) => e.dayId === d.id).length : 0;
+  };
+
+  function handleAutoSort() {
+    if (!profile) return;
+    // Fordel alle entries på dag 1/2/3 baseret på timestamp
+    for (const entry of entries) {
+      const targetNum = assignDayNumber(entry.timestamp, entries, profile.wakeTime);
+      const currentDay = days.find((d) => d.id === entry.dayId);
+      if (currentDay?.dayNumber !== targetNum) {
+        const targetDay = ensureDay(targetNum);
+        updateEntry(entry.id, { dayId: targetDay.id });
+      }
+    }
+    setAutoSorted(true);
+    setTimeout(() => setAutoSorted(false), 3000);
+  }
 
   return (
     <div className="max-w-lg mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Dagbog</h1>
-      <div className="flex gap-2 mb-6">{([1,2,3] as const).map((n) => (<button key={n} onClick={() => setDayNum(n)} className="flex-1 py-3 rounded-xl border-2 text-lg font-semibold" style={{ background:dayNum===n?"var(--accent)":"var(--surface)", borderColor:dayNum===n?"var(--accent)":"var(--border)", color:dayNum===n?"#fff":"var(--text)" }}>Dag {n}</button>))}</div>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-3xl font-bold">Dagbog</h1>
+        {profile && entries.length > 0 && (
+          <button
+            onClick={handleAutoSort}
+            className="text-xs px-3 py-2 rounded-xl font-semibold"
+            style={{ background: autoSorted ? "var(--success)" : "var(--surface)", border: "1px solid var(--border)", color: autoSorted ? "#fff" : "var(--muted)" }}
+          >
+            {autoSorted ? "✅ Sorteret!" : "🔀 Auto-sortér dage"}
+          </button>
+        )}
+      </div>
+
+      {/* Dag-tabs med antal */}
+      <div className="flex gap-2 mb-4">
+        {([1,2,3] as const).map((n) => (
+          <button key={n} onClick={() => setDayNum(n)}
+            className="flex-1 py-3 rounded-xl border-2 text-base font-semibold relative"
+            style={{ background: dayNum===n?"var(--accent)":"var(--surface)", borderColor: dayNum===n?"var(--accent)":"var(--border)", color: dayNum===n?"#fff":"var(--text)" }}>
+            Dag {n}
+            {countForDay(n) > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold"
+                style={{ background: dayNum===n?"#fff":"var(--accent)", color: dayNum===n?"var(--accent)":"#fff" }}>
+                {countForDay(n)}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
       {day && <p className="text-[var(--muted)] text-sm mb-4">{format(new Date(day.date),"EEEE d. MMMM yyyy",{locale:da})}</p>}
-      {dayEntries.length===0 ? <div className="rounded-2xl p-8 text-center" style={{ background:"var(--surface)", border:"2px dashed var(--border)" }}><p className="text-5xl mb-3">📋</p><p className="text-[var(--muted)]">Ingen registreringer endnu</p></div> : (
+
+      {autoSorted && (
+        <div className="rounded-xl p-3 mb-4 text-sm" style={{ background:"#052e16", border:"1px solid var(--success)", color:"var(--success)" }}>
+          ✅ Entries fordelt automatisk på dag 1/2/3 ud fra opståtid ({profile?.wakeTime})
+        </div>
+      )}
+
+      {dayEntries.length===0 ? (
+        <div className="rounded-2xl p-8 text-center" style={{ background:"var(--surface)", border:"2px dashed var(--border)" }}>
+          <p className="text-5xl mb-3">📋</p>
+          <p className="text-[var(--muted)]">Ingen registreringer på dag {dayNum}</p>
+          {entries.length > 0 && (
+            <button onClick={handleAutoSort} className="mt-4 text-sm underline" style={{ color:"var(--accent)" }}>
+              Prøv auto-sortér →
+            </button>
+          )}
+        </div>
+      ) : (
         <div className="space-y-3">{dayEntries.map((e) => (
           <div key={e.id} className="rounded-xl p-3" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
             <div className="flex justify-between items-start gap-2">

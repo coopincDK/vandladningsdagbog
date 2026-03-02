@@ -41,14 +41,24 @@ export function leaveSyncRoom() {
   localStorage.removeItem("sync-room");
 }
 
-// Merge entries: behold alle unikke id'er, remote vinder ved konflikt (nyeste updatedAt)
+// Merge entries: behold alle unikke id'er, nyeste updatedAt vinder ved konflikt
 function mergeEntries(
   local: import("./types").Entry[],
   remote: import("./types").Entry[]
 ): import("./types").Entry[] {
   const map = new Map<string, import("./types").Entry>();
   for (const e of local) map.set(e.id, e);
-  for (const e of remote) map.set(e.id, e); // remote overskriver ved samme id
+  for (const e of remote) {
+    const existing = map.get(e.id);
+    if (!existing) {
+      map.set(e.id, e);
+    } else {
+      // Nyeste updatedAt vinder — hvis ingen updatedAt, vinder remote
+      const localTime = existing.updatedAt ?? "";
+      const remoteTime = e.updatedAt ?? "9999";
+      if (remoteTime > localTime) map.set(e.id, e);
+    }
+  }
   return Array.from(map.values());
 }
 

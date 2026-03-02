@@ -10,6 +10,7 @@ export interface Entry {
   voidMl?: number; isEstimated?: boolean; durationSeconds?: number; urgencyScore?: number;
   severity?: IncontinenceSeverity; activity?: string;
   note?: string;
+  updatedAt?: string; // ISO timestamp for seneste ændring
 }
 
 export interface DiaryDay { id: string; date: string; dayNumber: 1 | 2 | 3; isTypicalDay: boolean; }
