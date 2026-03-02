@@ -91,10 +91,14 @@ export default function RegistrerPage() {
   const [mode, setMode] = useState<Mode>("home");
   const [dayNum, setDayNum] = useState<number>(1);
 
-  // Auto-sæt dag ved mount + når data slettes (entries tømmes)
+  // Auto-sæt dag KUN ved mount — bruger kan overrule bagefter
+  const hasInitialized = useRef(false);
   useEffect(() => {
-    if (profile) setDayNum(currentDayNumber(days, entries, profile));
-  }, [profile, entries.length === 0]); // reagerer på sletning
+    if (!hasInitialized.current && profile) {
+      setDayNum(currentDayNumber(days, entries, profile));
+      hasInitialized.current = true;
+    }
+  }); // ingen deps = kører hver render, men ref stopper den efter første gang
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [estimated, setEstimated] = useState<number | null>(null);
