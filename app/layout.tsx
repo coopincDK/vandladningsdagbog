@@ -4,7 +4,15 @@ import BottomNav from "@/components/BottomNav";
 import HydrationGate from "@/components/HydrationGate";
 import SyncProvider from "@/components/SyncProvider";
 
-export const metadata: Metadata = { title: "Vandladningsdagbog", description: "Digital væske- og vandladningsdagbog" };
+export const metadata: Metadata = {
+  title: "Vandladningsdagbog",
+  description: "Digital væske- og vandladningsdagbog",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.webp",
+    apple: "/icon.webp",
+  },
+};
 export const viewport: Viewport = { themeColor: "#0f172a", width: "device-width", initialScale: 1, maximumScale: 1, userScalable: false };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -8,7 +8,7 @@ const tabs = [
   { href: "/opsummering", label: "Overblik",  icon: "📊" },
   { href: "/ipss",        label: "IPSS",      icon: "📝" },
   { href: "/eksport",     label: "Eksport",   icon: "📄" },
-  { href: "/sync",        label: "Sync",      icon: "☁️" },
+  { href: "/sync",        label: "Sync",      icon: "☁️", alwaysShow: true },
 ];
 
 export default function BottomNav() {
