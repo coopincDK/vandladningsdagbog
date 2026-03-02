@@ -18,9 +18,19 @@ export default function ProfilPage() {
   const [patientLabel, setPatientLabel] = useState(profile?.patientLabel ?? "");
 
   // Synkroniser lokale state-værdier når profil opdateres via sync
+  // Men KUN hvis brugeren ikke er ved at redigere
   const prevProfileRef = useRef(profile);
+  const [isDirty, setIsDirty] = useState(false);
+  const dirtyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function markDirty() {
+    setIsDirty(true);
+    if (dirtyTimerRef.current) clearTimeout(dirtyTimerRef.current);
+    dirtyTimerRef.current = setTimeout(() => setIsDirty(false), 10000);
+  }
+
   useEffect(() => {
-    if (profile && profile !== prevProfileRef.current) {
+    if (profile && profile !== prevProfileRef.current && !isDirty) {
       setSex(profile.sex);
       setBirthYear(profile.birthYear);
       setSleepTime(profile.sleepTime);
@@ -28,11 +38,12 @@ export default function ProfilPage() {
       setPatientLabel(profile.patientLabel ?? "");
       prevProfileRef.current = profile;
     }
-  }, [profile]);
+  }, [profile, isDirty]);
   const isNew = !profile;
   const age = profile ? new Date().getFullYear() - profile.birthYear : null;
 
   function save() {
+    setIsDirty(false);
     setProfile({ sex, birthYear, sleepTime, wakeTime, patientLabel: patientLabel.trim() || undefined });
     setTimeout(() => router.push("/registrer"), 100);
   }
@@ -54,7 +65,9 @@ export default function ProfilPage() {
         </div>
         <div>
           <label className="block text-sm font-semibold text-[var(--muted)] mb-2 uppercase">Dit ID / initialer (valgfri)</label>
-          <input type="text" value={patientLabel} onChange={(e) => setPatientLabel(e.target.value)}
+          <input type="text" value={patientLabel}
+            onChange={(e) => { setPatientLabel(e.target.value); markDirty(); }}
+            onFocus={markDirty}
             placeholder="F.eks. MM eller Patient 1"
             className="w-full rounded-xl px-4 py-4 text-xl font-bold text-center"
             style={{ background:"var(--surface)", border:"2px solid var(--border)", color:"var(--text)" }} />
@@ -62,7 +75,7 @@ export default function ProfilPage() {
         </div>
         <div>
           <label className="block text-sm font-semibold text-[var(--muted)] mb-2 uppercase">Fødselsår</label>
-          <input type="number" min={1920} max={2015} value={birthYear} onChange={(e) => setBirthYear(Number(e.target.value))} className="w-full rounded-xl px-4 py-4 text-2xl font-bold text-center" style={{ background:"var(--surface)", border:"2px solid var(--border)", color:"var(--text)" }} />
+          <input type="number" min={1920} max={2015} value={birthYear} onChange={(e) => { setBirthYear(Number(e.target.value)); markDirty(); }} className="w-full rounded-xl px-4 py-4 text-2xl font-bold text-center" style={{ background:"var(--surface)", border:"2px solid var(--border)", color:"var(--text)" }} />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
