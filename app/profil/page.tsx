@@ -8,6 +8,9 @@ export default function ProfilPage() {
   const router = useRouter();
   const profile = useStore((s) => s.profile);
   const setProfile = useStore((s) => s.setProfile);
+  const clearData = useStore((s) => s.clearData);
+  const entries = useStore((s) => s.entries);
+  const [confirmClear, setConfirmClear] = useState(false);
   const [sex, setSex] = useState<Sex>(profile?.sex ?? "male");
   const [birthYear, setBirthYear] = useState(profile?.birthYear ?? 1960);
   const [sleepTime, setSleepTime] = useState(profile?.sleepTime ?? "22:00");
@@ -76,6 +79,42 @@ export default function ProfilPage() {
         </button>
       </div>
       <p className="text-xs text-[var(--muted)] text-center mt-8">Data gemmes lokalt i din browser.</p>
+
+      {/* Slet alle målinger */}
+      {!isNew && (
+        <div className="mt-10 pt-8" style={{ borderTop: "1px solid var(--border)" }}>
+          <p className="text-sm font-semibold mb-1" style={{ color: "var(--muted)" }}>Nulstil målinger</p>
+          <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>
+            Sletter alle registreringer og dage — så du kan starte en ny runde. Din profil beholdes.
+            {entries.length > 0 && <span className="font-semibold" style={{ color: "var(--text)" }}> ({entries.length} registreringer)</span>}
+          </p>
+          {!confirmClear ? (
+            <button onClick={() => setConfirmClear(true)}
+              className="w-full py-4 rounded-2xl text-base font-semibold"
+              style={{ background: "var(--surface)", border: "2px solid var(--danger)", color: "var(--danger)" }}>
+              🗑 Slet alle målinger
+            </button>
+          ) : (
+            <div className="rounded-2xl p-4" style={{ background: "#450a0a", border: "2px solid var(--danger)" }}>
+              <p className="text-sm font-semibold mb-3" style={{ color: "#fca5a5" }}>
+                Er du sikker? Dette kan ikke fortrydes.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmClear(false)}
+                  className="flex-1 py-3 rounded-xl text-base font-semibold"
+                  style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)" }}>
+                  Annuller
+                </button>
+                <button onClick={() => { clearData(); setConfirmClear(false); router.push("/registrer"); }}
+                  className="flex-1 py-3 rounded-xl text-base font-bold"
+                  style={{ background: "var(--danger)", color: "#fff" }}>
+                  Ja, slet alt
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -13,7 +13,7 @@ export interface Entry {
   updatedAt?: string; // ISO timestamp for seneste ændring
 }
 
-export interface DiaryDay { id: string; date: string; dayNumber: 1 | 2 | 3; isTypicalDay: boolean; }
+export interface DiaryDay { id: string; date: string; dayNumber: number; isTypicalDay: boolean; }
 export interface IPSSAnswer { a: number; b: number; comment?: string; }
 export interface IPSSResult {
   answers: Record<number, IPSSAnswer>;

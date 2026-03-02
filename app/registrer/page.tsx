@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { estimateVolume } from "@/lib/qavg";
 import type { BeverageType, IncontinenceSeverity, Entry, DiaryDay } from "@/lib/types";
+import { currentDayNumber, MAX_DAYS } from "@/lib/dayUtils";
 import { format } from "date-fns";
 
 type Mode = "home" | "void-timer" | "void-manual" | "intake";
@@ -88,7 +89,12 @@ export default function RegistrerPage() {
   const router = useRouter();
   const { profile, days, entries, ensureDay, addEntry } = useStore();
   const [mode, setMode] = useState<Mode>("home");
-  const [dayNum, setDayNum] = useState<1|2|3>(1);
+  const [dayNum, setDayNum] = useState<number>(1);
+
+  // Auto-sæt dag ved mount + når data slettes (entries tømmes)
+  useEffect(() => {
+    if (profile) setDayNum(currentDayNumber(days, entries, profile));
+  }, [profile, entries.length === 0]); // reagerer på sletning
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [estimated, setEstimated] = useState<number | null>(null);
@@ -141,14 +147,19 @@ export default function RegistrerPage() {
         <h1 className="text-3xl font-bold">Registrer</h1>
         <Link href="/profil" className="text-sm px-3 py-2 rounded-xl" style={{ background:"var(--surface)", border:"1px solid var(--border)", color:"var(--muted)" }}>👤 Profil</Link>
       </div>
-      {/* Dag-vælger */}
-      <div className="flex gap-2 mb-4">
-        {([1,2,3] as const).map((n) => (
-          <button key={n} onClick={() => setDayNum(n)} className="flex-1 py-2 rounded-xl border-2 text-base font-semibold"
-            style={{ background: dayNum===n ? "var(--accent)" : "var(--surface)", borderColor: dayNum===n ? "var(--accent)" : "var(--border)", color: dayNum===n ? "#fff" : "var(--text)" }}>
-            Dag {n}
-          </button>
-        ))}
+      {/* Dag-vælger — scrollbar op til MAX_DAYS */}
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+        {Array.from({ length: Math.max(MAX_DAYS, dayNum) }, (_, i) => i + 1).map((n) => {
+          const hasData = days.some((d) => d.dayNumber === n && entries.some((e) => e.dayId === d.id));
+          return (
+            <button key={n} onClick={() => setDayNum(n)}
+              className="flex-shrink-0 px-4 py-2 rounded-xl border-2 text-base font-semibold relative"
+              style={{ background: dayNum===n ? "var(--accent)" : "var(--surface)", borderColor: dayNum===n ? "var(--accent)" : "var(--border)", color: dayNum===n ? "#fff" : "var(--text)" }}>
+              Dag {n}
+              {hasData && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full" style={{ background: dayNum===n ? "#fff" : "var(--accent)" }} />}
+            </button>
+          );
+        })}
       </div>
       {/* Væske-coach */}
       <VæskeCoach entries={entries} day={currentDay} />

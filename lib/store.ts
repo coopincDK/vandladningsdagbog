@@ -10,11 +10,12 @@ interface AppState {
   entries: Entry[];
   ipssResult: IPSSResult | null;
   setProfile: (p: UserProfile) => void;
-  ensureDay: (n: 1 | 2 | 3) => DiaryDay;
+  ensureDay: (n: number) => DiaryDay;
   addEntry: (e: Entry) => void;
   updateEntry: (id: string, patch: Partial<Entry>) => void;
   deleteEntry: (id: string) => void;
   setIpssResult: (r: IPSSResult) => void;
+  clearData: () => void;
 }
 
 export const useStore = create<AppState>()(
@@ -33,6 +34,7 @@ export const useStore = create<AppState>()(
       addEntry: (e) => set((s) => ({ entries: [...s.entries, { ...e, updatedAt: new Date().toISOString() }] })),
       updateEntry: (id, patch) => set((s) => ({ entries: s.entries.map((e) => (e.id === id ? { ...e, ...patch, updatedAt: new Date().toISOString() } : e)) })),
       deleteEntry: (id) => set((s) => ({ entries: s.entries.filter((e) => e.id !== id) })),
+      clearData: () => set({ days: [], entries: [], ipssResult: null }),
     }),
     { name: "dagbog-store" }
   )
