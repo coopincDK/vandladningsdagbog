@@ -45,14 +45,14 @@ function assignDayNumber(
   const adjustedDateStr = adjustedDate.toISOString().slice(0, 10); // YYYY-MM-DD
 
   // Find alle unikke justerede datoer og sorter dem
-  const uniqueDates = [...new Set(
+  const uniqueDates = Array.from(new Set(
     allEntries.map((e) => {
       const d = new Date(e.timestamp);
       const eMin = d.getHours() * 60 + d.getMinutes();
       if (eMin < wakeMin) d.setDate(d.getDate() - 1);
       return d.toISOString().slice(0, 10);
     })
-  )].sort();
+  )).sort();
 
   const idx = uniqueDates.indexOf(adjustedDateStr);
   if (idx <= 0) return 1;

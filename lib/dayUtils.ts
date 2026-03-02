@@ -18,7 +18,7 @@ export function adjustedDate(ts: string, wakeTime: string): string {
 
 // Find alle unikke dag-datoer sorteret
 export function uniqueDayDates(entries: Entry[], wakeTime: string): string[] {
-  return [...new Set(entries.map((e) => adjustedDate(e.timestamp, wakeTime)))].sort();
+  return Array.from(new Set(entries.map((e) => adjustedDate(e.timestamp, wakeTime)))).sort();
 }
 
 // Beregn dag-nummer (1-baseret) for et givet timestamp
