@@ -21,12 +21,24 @@ const IPSS_OPTS: Record<number,string[]> = {
 };
 const DEFAULT_OPTS = ["Nej","Af og til","Som regel","Altid"];
 
+const BEVERAGE_FACTS: Record<string,string> = {
+  sodavand: "Sodavand indeholder koffein og sukker, som kan irritere blæren og øge vandladningstrang.",
+  kaffe:    "Kaffe er et mildt vanddrivende middel og kan irritere blæren.",
+  alkohol:  "Alkohol hæmmer ADH-hormonet og øger urinproduktionen.",
+  te:       "Te (sort/grøn) indeholder koffein og tanniner, der kan irritere blæren.",
+  juice:    "Juice er syrlig og kan irritere blæren — særligt citrusjuice.",
+  vand:     "Vand er den mest blærevenlige drik og fortynder urinen.",
+  andet:    "",
+};
+
 export default function EksportPage() {
   const { profile, days, entries, ipssResult } = useStore();
   const [inclProfil, setInclProfil] = useState(true);
   const [inclDagbog, setInclDagbog] = useState(true);
   const [inclKommentar, setInclKommentar] = useState(true);
   const [inclOverblik, setInclOverblik] = useState(true);
+  const [inclDiagrammer, setInclDiagrammer] = useState(true);
+  const [inclFunFacts, setInclFunFacts] = useState(true);
   const [inclIpss, setInclIpss] = useState(true);
   const [printing, setPrinting] = useState(false);
   const hasDays = days.length > 0;
@@ -42,7 +54,7 @@ export default function EksportPage() {
       const checkY = (n: number) => { if (y+n>280) { doc.addPage(); y=margin; } };
       const h1 = (t: string) => { checkY(14); doc.setFontSize(16); doc.setFont("helvetica","bold"); doc.setTextColor(30,30,30); doc.text(t,margin,y); y+=8; doc.setDrawColor(180,180,180); doc.line(margin,y,W-margin,y); y+=5; };
       const h2 = (t: string) => { checkY(10); doc.setFontSize(12); doc.setFont("helvetica","bold"); doc.setTextColor(50,50,50); doc.text(t,margin,y); y+=7; };
-      const body = (t: string) => { checkY(6); doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.setTextColor(30,30,30); doc.text(t,margin,y); y+=6; };
+      const body = (t: string, color?: [number,number,number]) => { checkY(6); doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.setTextColor(...(color??[30,30,30])); const lines = doc.splitTextToSize(t, W-margin*2); doc.text(lines,margin,y); y+=6*lines.length; };
 
       // Titel
       doc.setFontSize(20); doc.setFont("helvetica","bold"); doc.setTextColor(20,20,20);
@@ -102,6 +114,91 @@ export default function EksportPage() {
         }
       }
 
+      // Diagrammer (ASCII-stil søjlediagram i PDF)
+      if (inclDiagrammer && hasDays && profile) {
+        h1("Diagrammer");
+        for (const day of [...days].sort((a,b) => a.dayNumber-b.dayNumber)) {
+          const de = entries.filter((e) => e.dayId===day.id);
+          const voids = de.filter((e) => e.type==="void" && e.voidMl);
+          if (voids.length === 0) continue;
+
+          h2(`Dag ${day.dayNumber} — Vandladningsstørrelser`);
+          checkY(30);
+
+          // Tegn søjlediagram
+          const maxMl = Math.max(...voids.map((e) => e.voidMl ?? 0));
+          const barMaxH = 25; const barW = Math.min(8, (W - margin*2) / voids.length - 1);
+          const chartX = margin; const chartY = y + barMaxH;
+
+          // Baseline
+          doc.setDrawColor(180,180,180);
+          doc.line(chartX, chartY, chartX + voids.length * (barW+1), chartY);
+
+          voids.sort((a,b) => a.timestamp.localeCompare(b.timestamp)).forEach((e, i) => {
+            const h = ((e.voidMl ?? 0) / maxMl) * barMaxH;
+            const x = chartX + i * (barW + 1);
+            const isEst = e.isEstimated;
+            doc.setFillColor(isEst ? 245 : 37, isEst ? 158 : 99, isEst ? 11 : 235);
+            doc.rect(x, chartY - h, barW, h, "F");
+            // Tid under søjle
+            doc.setFontSize(6); doc.setTextColor(120,120,120);
+            doc.text(format(new Date(e.timestamp),"HH:mm"), x, chartY + 4);
+          });
+
+          // Legende
+          y = chartY + 10;
+          doc.setFontSize(8); doc.setTextColor(37,99,235);
+          doc.text("■ Målt", margin, y);
+          doc.setTextColor(245,158,11);
+          doc.text("■ Estimeret", margin + 18, y);
+          y += 8;
+
+          // Urgency fordeling
+          const urgencies = voids.filter((e) => e.urgencyScore != null);
+          if (urgencies.length > 0) {
+            h2(`Dag ${day.dayNumber} — Urgency fordeling`);
+            const counts = [0,1,2,3,4].map((n) => urgencies.filter((e) => e.urgencyScore===n).length);
+            const labels = ["0 Ingen","1 Svag","2 Moderat","3 Stærk","4 Kunne ikke holde"];
+            const colors: [number,number,number][] = [[34,197,94],[132,204,22],[245,158,11],[249,115,22],[239,68,68]];
+            const maxC = Math.max(...counts, 1);
+            const bW = 30;
+            counts.forEach((c, i) => {
+              checkY(7);
+              doc.setFontSize(8); doc.setTextColor(80,80,80);
+              doc.text(labels[i], margin, y);
+              doc.setFillColor(...colors[i]);
+              doc.rect(margin + 45, y - 4, (c / maxC) * bW, 4, "F");
+              doc.setTextColor(80,80,80);
+              doc.text(String(c), margin + 45 + (c/maxC)*bW + 2, y);
+              y += 6;
+            });
+            y += 4;
+          }
+        }
+      }
+
+      // Fun facts
+      if (inclFunFacts && hasDays) {
+        h1("Væske-noter");
+        // Find hvilke driktyper der er brugt
+        const intakes = entries.filter((e) => e.type==="intake" && e.beverageType);
+        const usedTypes = Array.from(new Set(intakes.map((e) => e.beverageType ?? "andet")));
+        if (usedTypes.length === 0) {
+          body("Ingen væskeregistreringer.");
+        } else {
+          for (const bev of usedTypes) {
+            const fact = BEVERAGE_FACTS[bev];
+            if (!fact) continue;
+            const totalMl = intakes.filter((e) => e.beverageType===bev).reduce((s,e) => s+(e.intakeMl??0), 0);
+            checkY(12);
+            doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(37,99,235);
+            doc.text(`${BEV[bev]} (${totalMl} ml total)`, margin, y); y+=5;
+            body(fact, [80,80,80]);
+            y+=2;
+          }
+        }
+      }
+
       // IPSS
       if (inclIpss && ipssResult) {
         h1("DAN-PSS Spørgeskema");
@@ -148,13 +245,15 @@ export default function EksportPage() {
   return (
     <div className="max-w-lg mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-2">Eksport til lægen</h1>
-      <p className="text-[var(--muted)] mb-8">Vælg hvad rapporten skal indeholde.</p>
+      <p className="text-[var(--muted)] mb-6">Vælg hvad rapporten skal indeholde.</p>
 
       <div className="space-y-3 mb-8">
         <Toggle icon="👤" label="Profil" sub={profile?.patientLabel ? `ID: ${profile.patientLabel} · Køn og alder` : "Køn og alder"} checked={inclProfil} onChange={setInclProfil} />
         <Toggle icon="📅" label="Dagbog" sub="Alle registreringer" checked={inclDagbog} onChange={setInclDagbog} disabled={!hasDays} />
         <Toggle icon="💬" label="Kommentarer" sub="Kommentarkolonne i dagbog" checked={inclKommentar} onChange={setInclKommentar} disabled={!hasDays||!inclDagbog} />
         <Toggle icon="📊" label="Overblik" sub="Nøgletal og kliniske flag" checked={inclOverblik} onChange={setInclOverblik} disabled={!hasDays} />
+        <Toggle icon="📈" label="Diagrammer" sub="Søjlediagram + urgency fordeling per dag" checked={inclDiagrammer} onChange={setInclDiagrammer} disabled={!hasDays} />
+        <Toggle icon="💡" label="Væske-noter" sub="Info om de drikkevarer du har registreret" checked={inclFunFacts} onChange={setInclFunFacts} disabled={!hasDays} />
         <Toggle icon="📝" label="DAN-PSS skema" sub={hasIpss ? `Score: ${ipssResult!.total} point — udfyldt ${format(new Date(ipssResult!.completedAt),"d. MMM",{locale:da})}` : "Ikke udfyldt endnu"} checked={inclIpss} onChange={setInclIpss} disabled={!hasIpss} />
       </div>
 
@@ -168,7 +267,7 @@ export default function EksportPage() {
 
       <button
         onClick={generatePDF}
-        disabled={printing||(!inclProfil&&!inclDagbog&&!inclOverblik&&!inclIpss)}
+        disabled={printing||(!inclProfil&&!inclDagbog&&!inclOverblik&&!inclIpss&&!inclDiagrammer&&!inclFunFacts)}
         className="w-full py-5 rounded-2xl text-xl font-bold disabled:opacity-40"
         style={{ background:"var(--accent)", color:"#fff" }}
       >
