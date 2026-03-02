@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { format } from "date-fns";
+import { MAX_DAYS } from "@/lib/dayUtils";
 import { da } from "date-fns/locale";
 import type { Entry } from "@/lib/types";
 
@@ -61,7 +62,7 @@ function assignDayNumber(
 
 export default function DagbogPage() {
   const { days, entries, profile, updateEntry, deleteEntry, ensureDay } = useStore();
-  const [dayNum, setDayNum] = useState<1|2|3>(1);
+  const [dayNum, setDayNum] = useState<number>(1);
   const [editId, setEditId] = useState<string|null>(null);
   const [autoSorted, setAutoSorted] = useState(false);
 
@@ -71,10 +72,13 @@ export default function DagbogPage() {
     : [];
 
   // Tæl entries per dag til badge
-  const countForDay = (n: 1|2|3) => {
+  const countForDay = (n: number) => {
     const d = days.find((d) => d.dayNumber === n);
     return d ? entries.filter((e) => e.dayId === d.id).length : 0;
   };
+
+  // Antal dage at vise: mindst MAX_DAYS, eller højeste dag med data
+  const maxDayNum = Math.max(MAX_DAYS, ...days.map((d) => d.dayNumber), dayNum);
 
   function handleAutoSort() {
     if (!profile) return;
@@ -106,12 +110,12 @@ export default function DagbogPage() {
         )}
       </div>
 
-      {/* Dag-tabs med antal */}
-      <div className="flex gap-2 mb-4">
-        {([1,2,3] as const).map((n) => (
+      {/* Dag-tabs med antal — scrollbar */}
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+        {Array.from({ length: maxDayNum }, (_, i) => i + 1).map((n) => (
           <button key={n} onClick={() => setDayNum(n)}
-            className="flex-1 py-3 rounded-xl border-2 text-base font-semibold relative"
-            style={{ background: dayNum===n?"var(--accent)":"var(--surface)", borderColor: dayNum===n?"var(--accent)":"var(--border)", color: dayNum===n?"#fff":"var(--text)" }}>
+            className="flex-shrink-0 px-4 py-2 rounded-xl border-2 text-base font-semibold relative"
+            style={{ background: dayNum===n?"var(--accent)":"var(--surface)", borderColor: dayNum===n?"var(--accent)":"var(--border)", color: dayNum===n?"#fff":"var(--text)", minWidth: "4rem" }}>
             Dag {n}
             {countForDay(n) > 0 && (
               <span className="absolute -top-1.5 -right-1.5 text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold"

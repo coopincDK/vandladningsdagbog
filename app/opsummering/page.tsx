@@ -4,6 +4,7 @@ import { useStore } from "@/lib/store";
 import { computeSummary, isNight } from "@/lib/summary";
 import { format } from "date-fns";
 import type { Entry, UserProfile } from "@/lib/types";
+import { MAX_DAYS } from "@/lib/dayUtils";
 
 const FC: Record<string,string> = { yellow:"#f59e0b", orange:"#f97316", red:"#ef4444" };
 const FB: Record<string,string> = { yellow:"#451a03", orange:"#431407", red:"#450a0a" };
@@ -232,7 +233,8 @@ function Insights({ entries, profile }: { entries: Entry[]; profile: UserProfile
 // ── Hoved-side ─────────────────────────────────────────────────────
 export default function OpsummeringPage() {
   const { days, entries, profile } = useStore();
-  const [dayNum, setDayNum] = useState<1|2|3>(1);
+  const [dayNum, setDayNum] = useState<number>(1);
+  const maxDayNum = Math.max(MAX_DAYS, ...days.map((d) => d.dayNumber), dayNum);
 
   if (!profile) return (
     <div className="max-w-lg mx-auto px-4 py-8 text-center">
@@ -248,15 +250,18 @@ export default function OpsummeringPage() {
     <div className="max-w-lg mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-4">Overblik</h1>
 
-      {/* Dag-tabs */}
-      <div className="flex gap-2 mb-6">
-        {([1,2,3] as const).map((n) => (
-          <button key={n} onClick={() => setDayNum(n)}
-            className="flex-1 py-3 rounded-xl border-2 text-lg font-semibold"
-            style={{ background: dayNum===n?"var(--accent)":"var(--surface)", borderColor: dayNum===n?"var(--accent)":"var(--border)", color: dayNum===n?"#fff":"var(--text)" }}>
-            Dag {n}
-          </button>
-        ))}
+      {/* Dag-tabs — scrollbar */}
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+        {Array.from({ length: maxDayNum }, (_, i) => i + 1).map((n) => {
+          const hasData = days.some((d) => d.dayNumber === n && entries.some((e) => e.dayId === d.id));
+          return (
+            <button key={n} onClick={() => setDayNum(n)}
+              className="flex-shrink-0 px-4 py-2 rounded-xl border-2 text-base font-semibold"
+              style={{ background: dayNum===n?"var(--accent)":"var(--surface)", borderColor: dayNum===n?"var(--accent)":"var(--border)", color: dayNum===n?"#fff":hasData?"var(--text)":"var(--muted)", minWidth: "4rem" }}>
+              Dag {n}
+            </button>
+          );
+        })}
       </div>
 
       {!day || de.length === 0 ? (
