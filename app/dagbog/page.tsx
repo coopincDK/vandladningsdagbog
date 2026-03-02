@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { format } from "date-fns";
-import { MAX_DAYS } from "@/lib/dayUtils";
+import { MAX_DAYS, assignDayNumber } from "@/lib/dayUtils";
 import { da } from "date-fns/locale";
 import type { Entry } from "@/lib/types";
 
@@ -16,49 +16,7 @@ function label(e: Entry) {
   return `Inkontinens: ${SEV[e.severity??"damp"]}${e.activity?` · ${e.activity}`:""}`;
 }
 
-// Konverter HH:mm til minutter siden midnat
-function hhmmToMin(hhmm: string): number {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
-}
 
-// Givet et timestamp: hvilken dag-periode (1/2/3) hører det til?
-// Logik: En "dag" starter ved opståtid og slutter ved næste opståtid.
-// Nat-timer (før opståtid) hører til SAMME dag som den efterfølgende morgen.
-function assignDayNumber(
-  entryTs: string,
-  allEntries: Entry[],
-  wakeTime: string
-): 1 | 2 | 3 {
-  if (allEntries.length === 0) return 1;
-
-  const wakeMin = hhmmToMin(wakeTime);
-  const ts = new Date(entryTs);
-  const entryMin = ts.getHours() * 60 + ts.getMinutes();
-
-  // Hvis entry er før opståtid (nat), hører den til forrige dags periode
-  // Så vi justerer datoen: nat kl 02:00 hører til dagen før
-  const adjustedDate = new Date(ts);
-  if (entryMin < wakeMin) {
-    adjustedDate.setDate(adjustedDate.getDate() - 1);
-  }
-  const adjustedDateStr = adjustedDate.toISOString().slice(0, 10); // YYYY-MM-DD
-
-  // Find alle unikke justerede datoer og sorter dem
-  const uniqueDates = Array.from(new Set(
-    allEntries.map((e) => {
-      const d = new Date(e.timestamp);
-      const eMin = d.getHours() * 60 + d.getMinutes();
-      if (eMin < wakeMin) d.setDate(d.getDate() - 1);
-      return d.toISOString().slice(0, 10);
-    })
-  )).sort();
-
-  const idx = uniqueDates.indexOf(adjustedDateStr);
-  if (idx <= 0) return 1;
-  if (idx === 1) return 2;
-  return 3;
-}
 
 export default function DagbogPage() {
   const { days, entries, profile, updateEntry, deleteEntry, ensureDay } = useStore();

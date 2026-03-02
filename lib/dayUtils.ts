@@ -6,14 +6,25 @@ function hhmmToMin(hhmm: string): number {
   return h * 60 + m;
 }
 
-// Givet et timestamp: returner den "justerede dato" (YYYY-MM-DD)
+// Lokal dato som YYYY-MM-DD (undgår UTC-forskydning)
+function localDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// Givet et timestamp: returner den "justerede dato" (YYYY-MM-DD) i lokal tid
 // Nat-timer før opståtid hører til forrige dag
 export function adjustedDate(ts: string, wakeTime: string): string {
   const d = new Date(ts);
-  const entryMin = d.getHours() * 60 + d.getMinutes();
+  const entryMin = d.getHours() * 60 + d.getMinutes(); // lokal tid
   const wakeMin = hhmmToMin(wakeTime);
-  if (entryMin < wakeMin) d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
+  if (entryMin < wakeMin) {
+    // Hører til forrige dag — træk én dag fra
+    d.setDate(d.getDate() - 1);
+  }
+  return localDateStr(d);
 }
 
 // Find alle unikke dag-datoer sorteret
@@ -29,18 +40,18 @@ export function assignDayNumber(ts: string, entries: Entry[], wakeTime: string):
   return idx === -1 ? dates.length + 1 : idx + 1;
 }
 
-// Beregn hvilken dag vi er på NU baseret på opståtid og eksisterende dage
+// Beregn hvilken dag vi er på NU baseret på opståtid og eksisterende entries
 export function currentDayNumber(days: DiaryDay[], entries: Entry[], profile: UserProfile): number {
-  if (days.length === 0) return 1;
+  if (entries.length === 0) return 1;
 
   const wakeMin = hhmmToMin(profile.wakeTime);
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
 
-  // Justeret dato for nu
+  // Justeret dato for nu i lokal tid
   const adjustedNow = new Date(now);
   if (nowMin < wakeMin) adjustedNow.setDate(adjustedNow.getDate() - 1);
-  const todayAdj = adjustedNow.toISOString().slice(0, 10);
+  const todayAdj = localDateStr(adjustedNow);
 
   // Find alle unikke justerede datoer fra eksisterende entries
   const dates = uniqueDayDates(entries, profile.wakeTime);
