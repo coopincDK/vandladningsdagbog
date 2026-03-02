@@ -3,6 +3,7 @@ import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import HydrationGate from "@/components/HydrationGate";
 import SyncProvider from "@/components/SyncProvider";
+import VersionCheck from "@/components/VersionCheck";
 
 export const metadata: Metadata = {
   title: "Vandladningsdagbog",
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="da" className="dark">
       <body className="flex flex-col min-h-dvh" style={{ background: "var(--bg)", color: "var(--text)" }}>
         <HydrationGate>
+          <VersionCheck />
           <SyncProvider>
             <main className="flex-1 overflow-y-auto pb-24">{children}</main>
             <BottomNav />

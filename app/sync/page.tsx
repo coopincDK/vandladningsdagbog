@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
 import { useSync, createSyncRoom, joinSyncRoom, leaveSyncRoom } from "@/lib/useSync";
+import { APP_VERSION, BUILD_DATE } from "@/lib/version";
 import { QRCodeSVG } from "qrcode.react";
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -241,7 +242,12 @@ function SyncContent() {
         </div>
       )}
 
-      <p className="text-xs text-[var(--muted)] text-center mt-8">Data gemmes krypteret. Ingen navn, CPR eller e-mail registreres.</p>
+      <p className="text-xs text-[var(--muted)] text-center mt-6">Data gemmes krypteret. Ingen navn, CPR eller e-mail registreres.</p>
+      <p className="text-xs text-center mt-2" style={{ color: "var(--muted)" }}>
+        Vandladningsdagbog{" "}
+        <span className="font-semibold" style={{ color: "var(--text)" }}>v{APP_VERSION}</span>
+        <span className="mx-1">·</span>{BUILD_DATE}
+      </p>
     </div>
   );
 }
